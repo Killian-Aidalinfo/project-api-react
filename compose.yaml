@@ -3,16 +3,18 @@ services:
     image: mysql:9.1
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpwd
-      MYSQL_DATABASE: atelier
-      MYSQL_USER: atelier
-      MYSQL_PASSWORD: atelierpwd
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      # Exposition hôte utile en dev local (bun run dev vers MySQL).
+      # En full-Coolify, l'API joint « db » en interne : ce mapping est inoffensif.
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpwd"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 15
@@ -21,14 +23,15 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      PORT: 3000
+      PORT: ${PORT:-3000}
+      # db = nom du service ci-dessus, résolu sur le réseau interne du compose.
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: atelier
-      DB_PASSWORD: atelierpwd
-      DB_NAME: atelier
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     depends_on:
       db:
         condition: service_healthy
